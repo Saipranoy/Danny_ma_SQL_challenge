@@ -89,3 +89,70 @@ WHERE ranks  = 1;
 
 -- A & C love ramen most where as B loves all the items in the menu.
 
+-- 6. Which item was purchased first by the customer after they became a member?
+
+WITH ranked_cte AS (
+SELECT
+ s.customer_id,
+ s.order_date,
+ me.join_date,
+ m.product_name,
+ DENSE_RANK() OVER(PARTITION BY s.customer_id
+                   ORDER BY s.order_date) AS ranks
+FROM dannys_diner.sales s 
+JOIN dannys_diner.members me 
+ ON s.customer_id = me.customer_id
+JOIN dannys_diner.menu m 
+ ON s.product_id = m.product_id
+WHERE s.order_date >= me.join_date
+)
+
+SELECT 
+ customer_id,
+ product_name
+FROM ranked_cte
+WHERE ranks = 1;
+
+-- A ordered curry and B ordered sushi just before they became a member of danny's diner.
+
+-- 7. Which item was purchased just before the customer became a member?
+
+WITH ranked_cte AS (
+SELECT
+ s.customer_id,
+ s.order_date,
+ me.join_date,
+ m.product_name,
+ DENSE_RANK() OVER(PARTITION BY s.customer_id
+                   ORDER BY s.order_date DESC) AS ranks
+FROM dannys_diner.sales s 
+JOIN dannys_diner.members me 
+ ON s.customer_id = me.customer_id
+JOIN dannys_diner.menu m 
+ ON s.product_id = m.product_id
+WHERE s.order_date < me.join_date
+)
+
+SELECT 
+ customer_id,
+ product_name
+FROM ranked_cte
+WHERE ranks = 1;
+
+-- A ordered Sushi & Curry and B ordered Sushi before they became a member.
+
+-- 8. What is the total items and amount spent for each member before they became a member?
+
+SELECT
+ s.customer_id,
+ COUNT( DISTINCT m.product_name) AS total_items,
+ SUM(m.price) AS total_amount
+FROM dannys_diner.sales s 
+JOIN dannys_diner.members me 
+ ON s.customer_id = me.customer_id
+JOIN dannys_diner.menu m 
+ ON s.product_id = m.product_id
+WHERE s.order_date < me.join_date
+GROUP BY s.customer_id;
+
+-- A spent a total of 25 dollars on 2 items and B spent a toal of 40 dollars on 2 items before they became a member.
