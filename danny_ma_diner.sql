@@ -156,3 +156,80 @@ WHERE s.order_date < me.join_date
 GROUP BY s.customer_id;
 
 -- A spent a total of 25 dollars on 2 items and B spent a toal of 40 dollars on 2 items before they became a member.
+
+-- 9. If each 1$ spent equates to 10 points and sushi has a 2*points mutiplier- how many points would eacg customer have?
+
+SELECT 
+ s.customer_id,
+ SUM(CASE when m.product_name = 'sushi' THEN 2*10*m.price ELSE 10*m.price END) AS total_points
+FROM dannys_diner.sales s 
+JOIN dannys_diner.menu m 
+ ON s.product_id = m.product_id
+GROUP BY s.customer_id
+ORDER BY s.customer_id;
+
+-- A will have 860 total points, B will have 940 points and C will have 360 points
+
+-- 10. In the first week after a customer joins the program (including their join date) they earn 2*points on all items, not just sushi - how many points do customer A and B have at the end of january?
+
+SELECT
+ s.customer_id,
+ SUM (
+  CASE 
+   WHEN s.order_date BETWEEN me.join_date AND ((me.join_date + INTERVAL '6 DAYS')::DATE)
+   THEN 2*10*m.price
+   WHEN m.product_name = 'sushi'
+   THEN 2*10*m.price 
+   ELSE 10*m.price
+  END
+  ) AS total_points
+FROM dannys_diner.sales s
+JOIN dannys_diner.members me 
+ ON s.customer_id = me.customer_id
+JOIN dannys_diner.menu m 
+ ON s.product_id = m.product_id
+WHERE s.order_date < '2021-02-01'
+GROUP BY s.customer_id;
+
+-- A will have total_points of 1370 and B will have 820 points
+
+-- 11.
+
+SELECT 
+ s.customer_id,
+ s.order_date,
+ m.product_name,
+ m.price,
+ (CASE WHEN s.order_date >= me.join_date THEN 'Y'
+  ELSE 'N' END) AS member
+FROM dannys_diner.sales s 
+LEFT JOIN dannys_diner.members me 
+ ON s.customer_id = me.customer_id
+LEFT JOIN dannys_diner.menu m 
+ ON s.product_id = m.product_id
+ORDER BY s.customer_id,s.order_date;
+
+ -- 12 . Need to check
+
+ WITH members_list AS (
+SELECT 
+ s.customer_id,
+ s.order_date,
+ m.product_name,
+ m.price,
+ CASE WHEN s.order_date >= me.join_date THEN 'Y'
+  ELSE 'N' END AS member
+FROM dannys_diner.sales s 
+LEFT JOIN dannys_diner.members me 
+ ON s.customer_id = me.customer_id
+LEFT JOIN dannys_diner.menu m 
+ ON s.product_id = m.product_id
+ORDER BY s.customer_id,s.order_date; 
+)
+
+SELECT *, 
+CASE
+ WHEN member = 'Y' THEN RANK () OVER(PARTITION BY customer_id, member) 
+ ELSE NULL
+ END AS ranking
+FROM members_list;
